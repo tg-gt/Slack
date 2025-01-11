@@ -1,4 +1,3 @@
-```markdown:README.md
 # Modern Slack Clone
 
 A full-featured Slack clone built with Next.js 14, TypeScript, Tailwind CSS, and Firebase. This application provides real-time team communication with channels, direct messages, and file sharing capabilities.
@@ -126,4 +125,3 @@ src/
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-```
