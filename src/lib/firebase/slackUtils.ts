@@ -117,6 +117,17 @@ export const getChannels = async (workspaceId: string, userId: string) => {
   return [...publicChannels, ...privateChannels];
 };
 
+export const getChannel = async (channelId: string): Promise<Channel> => {
+  const channelRef = firestoreDoc(db, 'channels', channelId);
+  const channelDoc = await getDoc(channelRef);
+  
+  if (!channelDoc.exists()) {
+    throw new Error('Channel not found');
+  }
+  
+  return { id: channelDoc.id, ...channelDoc.data() } as Channel;
+};
+
 // New function to invite users to a private channel
 export const inviteToChannel = async (channelId: string, userIds: string[]) => {
   const channelRef = firestoreDoc(db, 'channels', channelId);
