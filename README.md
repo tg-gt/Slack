@@ -5,7 +5,7 @@ A full-featured Slack clone built with Next.js 14, TypeScript, Tailwind CSS, and
 ## Features
 
 - 🔐 **Authentication & Organizations**
-  - Google authentication
+  - Google & Email authentication
   - Multi-workspace support
   - Workspace management and switching
 
