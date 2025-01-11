@@ -25,13 +25,13 @@ export default function ChannelList({
 
   useEffect(() => {
     const loadChannels = async () => {
-      if (workspaceId) {
-        const channelList = await getChannels(workspaceId);
+      if (workspaceId && user?.uid) {
+        const channelList = await getChannels(workspaceId, user.uid);
         setChannels(channelList);
       }
     };
     loadChannels();
-  }, [workspaceId]);
+  }, [workspaceId, user?.uid]);
 
   return (
     <div className="space-y-2">

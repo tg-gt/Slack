@@ -53,19 +53,17 @@ export const createWorkspace = async (workspace: Omit<Workspace, 'id' | 'created
 };
 
 export const getWorkspaces = async (userId: string) => {
-  const q = query(
-    collection(db, 'workspaces'),
-    where('members', 'array-contains', userId)
-  );
-  
   try {
-    const snapshot = await getDocs(q);
-    return snapshot.docs.map(doc => ({ 
-      id: doc.id, 
-      ...doc.data() 
-    } as Workspace));
+    // For now, get all workspaces instead of filtering by user membership
+    const workspacesRef = collection(db, 'workspaces');
+    const workspacesSnapshot = await getDocs(workspacesRef);
+    
+    return workspacesSnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    })) as Workspace[];
   } catch (error) {
-    console.error('Error fetching workspaces:', error);
+    console.error('Error getting workspaces:', error);
     throw error;
   }
 };
@@ -75,19 +73,103 @@ export const createChannel = async (channel: Omit<Channel, 'id' | 'createdAt' | 
   const now = new Date().toISOString();
   return addDoc(collection(db, 'channels'), {
     ...channel,
+    // For private channels, only creator is initial member
+    // For public channels, creator is still a member but visibility is controlled by isPrivate flag
+    members: [channel.createdBy],
     createdAt: now,
     updatedAt: now,
   });
 };
 
-export const getChannels = async (workspaceId: string) => {
-  const q = query(
+export const getChannels = async (workspaceId: string, userId: string) => {
+  // Get all public channels
+  const publicChannelsQuery = query(
     collection(db, 'channels'),
     where('workspaceId', '==', workspaceId),
+    where('isPrivate', '==', false),
     orderBy('name')
   );
-  const snapshot = await getDocs(q);
-  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Channel));
+  
+  // Get private channels where user is a member
+  const privateChannelsQuery = query(
+    collection(db, 'channels'),
+    where('workspaceId', '==', workspaceId),
+    where('isPrivate', '==', true),
+    where('members', 'array-contains', userId),
+    orderBy('name')
+  );
+
+  const [publicSnapshot, privateSnapshot] = await Promise.all([
+    getDocs(publicChannelsQuery),
+    getDocs(privateChannelsQuery)
+  ]);
+
+  const publicChannels = publicSnapshot.docs.map(doc => ({ 
+    id: doc.id, 
+    ...doc.data() 
+  } as Channel));
+  
+  const privateChannels = privateSnapshot.docs.map(doc => ({ 
+    id: doc.id, 
+    ...doc.data() 
+  } as Channel));
+
+  return [...publicChannels, ...privateChannels];
+};
+
+// New function to invite users to a private channel
+export const inviteToChannel = async (channelId: string, userIds: string[]) => {
+  const channelRef = firestoreDoc(db, 'channels', channelId);
+  const channelDoc = await getDoc(channelRef);
+  
+  if (!channelDoc.exists()) {
+    throw new Error('Channel not found');
+  }
+  
+  const channelData = channelDoc.data() as Channel;
+  if (!channelData.isPrivate) {
+    throw new Error('Cannot invite to public channel');
+  }
+  
+  // Add new members to the existing members array, avoiding duplicates
+  const updatedMembers = Array.from(new Set([
+    ...(channelData.members || []),
+    ...userIds
+  ]));
+  
+  await updateDoc(channelRef, {
+    members: updatedMembers,
+    updatedAt: new Date().toISOString()
+  });
+  
+  return updatedMembers;
+};
+
+// New function to remove users from a private channel
+export const removeFromChannel = async (channelId: string, userIds: string[]) => {
+  const channelRef = firestoreDoc(db, 'channels', channelId);
+  const channelDoc = await getDoc(channelRef);
+  
+  if (!channelDoc.exists()) {
+    throw new Error('Channel not found');
+  }
+  
+  const channelData = channelDoc.data() as Channel;
+  if (!channelData.isPrivate) {
+    throw new Error('Cannot remove from public channel');
+  }
+  
+  // Remove users from members array
+  const updatedMembers = (channelData.members || []).filter(
+    memberId => !userIds.includes(memberId)
+  );
+  
+  await updateDoc(channelRef, {
+    members: updatedMembers,
+    updatedAt: new Date().toISOString()
+  });
+  
+  return updatedMembers;
 };
 
 // Message functions
