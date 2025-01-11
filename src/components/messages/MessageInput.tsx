@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Paperclip, Send } from 'lucide-react';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { useWorkspace } from '@/lib/contexts/WorkspaceContext';
 import { useMessages } from '@/lib/contexts/MessageContext';
-import { uploadFile } from '@/lib/firebase/slackUtils';
-import type { Attachment, Message } from '@/lib/types/slack';
+import { uploadFile, getProfile } from '@/lib/firebase/slackUtils';
+import { generateInitialsAvatar } from '@/lib/utils/avatarUtils';
+import type { Attachment, Message, UserProfile } from '@/lib/types/slack';
 
 interface MessageInputProps {
   channelId: string;
@@ -17,21 +18,33 @@ export default function MessageInput({ channelId, threadId }: MessageInputProps)
   const [content, setContent] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { user } = useAuth();
   const { currentWorkspace } = useWorkspace();
   const { sendMessage } = useMessages();
 
+  useEffect(() => {
+    const loadProfile = async () => {
+      if (user?.uid) {
+        const profile = await getProfile(user.uid);
+        setUserProfile(profile);
+      }
+    };
+    loadProfile();
+  }, [user?.uid]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user || !content.trim() || !currentWorkspace) return;
+    if (!user || !content.trim() || !currentWorkspace || !userProfile) return;
 
     try {
+      const userName = userProfile.displayName || user.displayName || 'Anonymous';
       const messageData: Omit<Message, 'id' | 'createdAt' | 'updatedAt'> = {
         content: content.trim(),
         userId: user.uid,
-        userName: user.displayName || 'Anonymous',
-        userAvatar: user.photoURL || undefined,
+        userName,
+        userAvatar: userProfile.avatarUrl || user.photoURL || generateInitialsAvatar(userName),
         channelId,
         workspaceId: currentWorkspace.id,
         attachments,

@@ -249,4 +249,25 @@ export const createInitialProfile = async (profile: UserProfile) => {
   }
   
   return profile;
+};
+
+// User search function
+export const searchUsers = async (query: string): Promise<UserProfile[]> => {
+  try {
+    // Get all users for now - in a real app, you'd want to implement proper search
+    const usersRef = collection(db, 'users');
+    const snapshot = await getDocs(usersRef);
+    const users = snapshot.docs.map(doc => ({ 
+      id: doc.id, 
+      ...doc.data() 
+    } as UserProfile));
+    
+    // Filter by display name containing query
+    return users.filter(user => 
+      user.displayName.toLowerCase().includes(query.toLowerCase())
+    );
+  } catch (error) {
+    console.error('Error searching users:', error);
+    throw error;
+  }
 }; 
