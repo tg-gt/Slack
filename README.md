@@ -1,5 +1,3 @@
-Here's a comprehensive README for the Slack clone project:
-
 ```markdown:README.md
 # Modern Slack Clone
 
@@ -129,5 +127,3 @@ src/
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 ```
-
-This README provides a comprehensive overview of the project, its features, setup instructions, and structure. It helps new developers understand the project quickly and get started with development.
