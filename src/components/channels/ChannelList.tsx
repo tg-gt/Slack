@@ -1,12 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Hash, Lock, ChevronDown, Plus, UserPlus, Search, Check } from 'lucide-react';
+import { Hash, Lock, ChevronDown, Plus, UserPlus, Search, Check, MessageCircle } from 'lucide-react';
 import { getChannels, inviteToChannel, searchUsers } from '@/lib/firebase/slackUtils';
 import type { Channel, UserProfile } from '@/lib/types/slack';
 import { useAuth } from '@/lib/hooks/useAuth';
 import CreateChannelDialog from './CreateChannelDialog';
 import { useDebounce } from '@/lib/hooks/useDebounce';
+import DirectMessageList from '../messages/DirectMessageList';
 
 interface ChannelListProps {
   workspaceId: string;
@@ -17,7 +18,7 @@ interface ChannelListProps {
 export default function ChannelList({ 
   workspaceId, 
   selectedChannelId,
-  onChannelSelect 
+  onChannelSelect,
 }: ChannelListProps) {
   const [channels, setChannels] = useState<Channel[]>([]);
   const [isExpanded, setIsExpanded] = useState(true);
@@ -51,7 +52,6 @@ export default function ChannelList({
       setIsLoading(true);
       try {
         const results = await searchUsers(debouncedSearch);
-        // Filter out current user and already selected users
         const filteredResults = results.filter(result => 
           result.id !== user?.uid && 
           !selectedUsers.some(selected => selected.id === result.id)
@@ -83,29 +83,35 @@ export default function ChannelList({
     }
   };
 
-  const toggleUserSelection = (user: UserProfile) => {
+  const toggleUserSelection = (u: UserProfile) => {
     setSelectedUsers(prev => {
-      const isSelected = prev.some(u => u.id === user.id);
+      const isSelected = prev.some(usr => usr.id === u.id);
       if (isSelected) {
-        return prev.filter(u => u.id !== user.id);
+        return prev.filter(usr => usr.id !== u.id);
       } else {
-        return [...prev, user];
+        return [...prev, u];
       }
     });
-    setSearchQuery(''); // Clear search after selection
+    setSearchQuery('');
   };
 
   return (
     <div className="space-y-2">
-      <div className="flex items-center justify-between px-4 py-2 hover:bg-gray-100 cursor-pointer"
-           onClick={() => setIsExpanded(!isExpanded)}>
+      <div
+        className="flex items-center justify-between px-4 py-2 hover:bg-gray-100 cursor-pointer"
+        onClick={() => setIsExpanded(!isExpanded)}
+      >
         <div className="flex items-center space-x-2">
-          <ChevronDown className={`h-4 w-4 transform transition-transform ${isExpanded ? '' : '-rotate-90'}`} />
+          <ChevronDown
+            className={`h-4 w-4 transform transition-transform ${
+              isExpanded ? '' : '-rotate-90'
+            }`}
+          />
           <span className="font-medium">Channels</span>
         </div>
         {user && (
-          <Plus 
-            className="h-4 w-4 hover:text-blue-500" 
+          <Plus
+            className="h-4 w-4 text-gray-400 hover:text-blue-500 cursor-pointer"
             onClick={(e) => {
               e.stopPropagation();
               setShowCreateDialog(true);
@@ -145,6 +151,12 @@ export default function ChannelList({
         </div>
       )}
 
+      <DirectMessageList
+        workspaceId={workspaceId}
+        selectedChannelId={selectedChannelId}
+        onSelectDM={onChannelSelect}
+      />
+
       {showCreateDialog && (
         <CreateChannelDialog
           workspaceId={workspaceId}
@@ -163,14 +175,14 @@ export default function ChannelList({
             <div className="space-y-4">
               {selectedUsers.length > 0 && (
                 <div className="flex flex-wrap gap-2 mb-3">
-                  {selectedUsers.map(user => (
+                  {selectedUsers.map(u => (
                     <div
-                      key={user.id}
+                      key={u.id}
                       className="flex items-center bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-sm"
                     >
-                      <span>{user.displayName}</span>
+                      <span>{u.displayName}</span>
                       <button
-                        onClick={() => toggleUserSelection(user)}
+                        onClick={() => toggleUserSelection(u)}
                         className="ml-2 text-blue-600 hover:text-blue-800"
                       >
                         ×
@@ -206,19 +218,19 @@ export default function ChannelList({
                       className="w-full flex items-center justify-between px-4 py-2 hover:bg-gray-50 text-left"
                     >
                       <span className="text-sm">{result.displayName}</span>
-                      <Check className={`h-4 w-4 ${
-                        selectedUsers.some(u => u.id === result.id)
-                          ? 'text-blue-500'
-                          : 'text-transparent'
-                      }`} />
+                      <Check
+                        className={`h-4 w-4 ${
+                          selectedUsers.some(u => u.id === result.id)
+                            ? 'text-blue-500'
+                            : 'text-transparent'
+                        }`}
+                      />
                     </button>
                   ))}
                 </div>
               )}
               
-              {error && (
-                <p className="text-sm text-red-600">{error}</p>
-              )}
+              {error && <p className="text-sm text-red-600">{error}</p>}
 
               <div className="flex justify-end space-x-3">
                 <button
@@ -246,4 +258,4 @@ export default function ChannelList({
       )}
     </div>
   );
-} 
+}

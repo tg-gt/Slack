@@ -2,7 +2,14 @@
 
 import { createContext, useContext, useEffect, useState } from 'react';
 import { db } from '../firebase/firebase';
-import { collection, query, where, onSnapshot, orderBy, addDoc } from 'firebase/firestore';
+import {
+  collection,
+  query,
+  where,
+  onSnapshot,
+  orderBy,
+  addDoc
+} from 'firebase/firestore';
 import type { Message } from '../types/slack';
 import { useAuth } from '../hooks/useAuth';
 
@@ -13,14 +20,19 @@ interface MessageContextType {
   sendMessage: (message: Omit<Message, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
 }
 
+/**
+ * Accept either channelId or dmChannelId to fetch messages.
+ */
 const MessageContext = createContext<MessageContextType | undefined>(undefined);
 
-export function MessageProvider({ 
-  children, 
-  channelId 
-}: { 
+export function MessageProvider({
+  children,
+  channelId,
+  dmChannelId
+}: {
   children: React.ReactNode;
-  channelId: string;
+  channelId?: string;
+  dmChannelId?: string;
 }) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
@@ -28,27 +40,48 @@ export function MessageProvider({
   const { user } = useAuth();
 
   useEffect(() => {
-    const q = query(
-      collection(db, 'messages'),
-      where('channelId', '==', channelId),
-      orderBy('createdAt', 'asc')
-    );
+    setLoading(true);
+    setError(null);
 
-    const unsubscribe = onSnapshot(q, 
+    // If no channelId or dmChannelId, do nothing.
+    if (!channelId && !dmChannelId) {
+      setMessages([]);
+      setLoading(false);
+      return;
+    }
+
+    let q;
+    if (channelId) {
+      // normal channel
+      q = query(
+        collection(db, 'messages'),
+        where('channelId', '==', channelId),
+        orderBy('createdAt', 'asc')
+      );
+    } else {
+      // direct message channel
+      q = query(
+        collection(db, 'messages'),
+        where('dmChannelId', '==', dmChannelId),
+        orderBy('createdAt', 'asc')
+      );
+    }
+
+    const unsubscribe = onSnapshot(
+      q,
       (snapshot) => {
-        setMessages(
-          snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Message))
-        );
+        const fetched = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Message));
+        setMessages(fetched);
         setLoading(false);
       },
-      (error) => {
-        setError(error);
+      (err) => {
+        setError(err);
         setLoading(false);
       }
     );
 
     return () => unsubscribe();
-  }, [channelId]);
+  }, [channelId, dmChannelId]);
 
   const sendMessage = async (message: Omit<Message, 'id' | 'createdAt' | 'updatedAt'>) => {
     try {
@@ -58,9 +91,9 @@ export function MessageProvider({
         createdAt: now,
         updatedAt: now,
       });
-    } catch (error) {
-      console.error('Error sending message:', error);
-      setError(error as Error);
+    } catch (err) {
+      console.error('Error sending message:', err);
+      setError(err as Error);
     }
   };
 
@@ -77,4 +110,4 @@ export const useMessages = () => {
     throw new Error('useMessages must be used within a MessageProvider');
   }
   return context;
-}; 
+};

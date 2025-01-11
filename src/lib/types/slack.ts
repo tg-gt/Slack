@@ -52,8 +52,33 @@ export interface Attachment {
   mimeType: string;
 }
 
-export interface DirectMessage extends Omit<Message, 'channelId'> {
-  participants: string[];
+export interface DirectMessage extends Message {
+  channelId: string;
+}
+
+/**
+ * Represents a direct message channel (1:1 or group).
+ */
+export interface DirectMessageMember {
+  id: string;
+  displayName: string;
+  avatarUrl?: string;
+}
+
+export interface DirectMessageChannel {
+  id: string;
+  workspaceId: string;
+  members: DirectMessageMember[];
+  memberIds: string[]; // Array of user IDs for querying
+  type: 'dm' | 'group';
+  lastMessage?: {
+    id: string;
+    content: string;
+    senderId: string;
+    createdAt: string;
+  } | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface UserProfile {
@@ -77,4 +102,4 @@ export interface NotificationPreferences {
   mobile: boolean;
   email: boolean;
   mentionsOnly: boolean;
-} 
+}

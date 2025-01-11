@@ -15,7 +15,15 @@ import {
   limit as firestoreLimit
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import type { Workspace, Channel, Message, DirectMessage, UserProfile, Attachment } from '../types/slack';
+import type {
+  Workspace,
+  Channel,
+  Message,
+  DirectMessage,
+  UserProfile,
+  Attachment,
+  DirectMessageChannel
+} from '../types/slack';
 
 // Workspace functions
 export const createWorkspace = async (workspace: Omit<Workspace, 'id' | 'createdAt' | 'updatedAt'>) => {
@@ -73,8 +81,6 @@ export const createChannel = async (channel: Omit<Channel, 'id' | 'createdAt' | 
   const now = new Date().toISOString();
   return addDoc(collection(db, 'channels'), {
     ...channel,
-    // For private channels, only creator is initial member
-    // For public channels, creator is still a member but visibility is controlled by isPrivate flag
     members: [channel.createdBy],
     createdAt: now,
     updatedAt: now,
@@ -128,7 +134,7 @@ export const getChannel = async (channelId: string): Promise<Channel> => {
   return { id: channelDoc.id, ...channelDoc.data() } as Channel;
 };
 
-// New function to invite users to a private channel
+// Invite to private channel
 export const inviteToChannel = async (channelId: string, userIds: string[]) => {
   const channelRef = firestoreDoc(db, 'channels', channelId);
   const channelDoc = await getDoc(channelRef);
@@ -142,7 +148,6 @@ export const inviteToChannel = async (channelId: string, userIds: string[]) => {
     throw new Error('Cannot invite to public channel');
   }
   
-  // Add new members to the existing members array, avoiding duplicates
   const updatedMembers = Array.from(new Set([
     ...(channelData.members || []),
     ...userIds
@@ -156,7 +161,6 @@ export const inviteToChannel = async (channelId: string, userIds: string[]) => {
   return updatedMembers;
 };
 
-// New function to remove users from a private channel
 export const removeFromChannel = async (channelId: string, userIds: string[]) => {
   const channelRef = firestoreDoc(db, 'channels', channelId);
   const channelDoc = await getDoc(channelRef);
@@ -170,7 +174,6 @@ export const removeFromChannel = async (channelId: string, userIds: string[]) =>
     throw new Error('Cannot remove from public channel');
   }
   
-  // Remove users from members array
   const updatedMembers = (channelData.members || []).filter(
     memberId => !userIds.includes(memberId)
   );
@@ -262,10 +265,9 @@ export const createInitialProfile = async (profile: UserProfile) => {
   return profile;
 };
 
-// User search function
-export const searchUsers = async (query: string): Promise<UserProfile[]> => {
+// User search
+export const searchUsers = async (queryString: string): Promise<UserProfile[]> => {
   try {
-    // Get all users for now - in a real app, you'd want to implement proper search
     const usersRef = collection(db, 'users');
     const snapshot = await getDocs(usersRef);
     const users = snapshot.docs.map(doc => ({ 
@@ -273,12 +275,116 @@ export const searchUsers = async (query: string): Promise<UserProfile[]> => {
       ...doc.data() 
     } as UserProfile));
     
-    // Filter by display name containing query
     return users.filter(user => 
-      user.displayName.toLowerCase().includes(query.toLowerCase())
+      user.displayName.toLowerCase().includes(queryString.toLowerCase())
     );
   } catch (error) {
     console.error('Error searching users:', error);
     throw error;
   }
-}; 
+};
+
+/**
+ * Create a direct message channel (1:1 or group).
+ */
+export const createDirectMessageChannel = async (workspaceId: string, members: UserProfile[]) => {
+  try {
+    console.log('Creating DM channel with data:', { workspaceId, members });
+    
+    const now = new Date().toISOString();
+    const channelData = {
+      workspaceId,
+      members: members.map(m => ({
+        id: m.id,
+        displayName: m.displayName || 'Anonymous',
+        ...(m.avatarUrl ? { avatarUrl: m.avatarUrl } : {})
+      })),
+      memberIds: members.map(m => m.id),
+      type: 'dm' as const,
+      lastMessage: null,
+      createdAt: now,
+      updatedAt: now
+    };
+
+    console.log('Prepared channel data:', channelData);
+
+    const docRef = await addDoc(collection(db, 'dmChannels'), channelData);
+
+    console.log('Successfully created DM channel with ID:', docRef.id);
+    return docRef;
+  } catch (error) {
+    console.error('Detailed error creating DM channel:', error);
+    console.error('Error context:', {
+      workspaceId,
+      memberDetails: members.map(m => ({
+        id: m.id,
+        hasDisplayName: !!m.displayName,
+        hasEmail: !!m.email,
+        hasPreferences: !!m.preferences
+      }))
+    });
+    throw error;
+  }
+};
+
+export const getDirectMessageChannels = async (workspaceId: string, userId: string) => {
+  try {
+    console.log('Querying DM channels with:', { workspaceId, userId });
+    
+    const q = query(
+      collection(db, 'dmChannels'),
+      where('workspaceId', '==', workspaceId),
+      where('memberIds', 'array-contains', userId),
+      orderBy('updatedAt', 'desc')
+    );
+    
+    const snapshot = await getDocs(q);
+    console.log('DM channels query result:', snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    
+    return snapshot.docs.map(doc => ({ 
+      id: doc.id, 
+      ...doc.data() 
+    } as DirectMessageChannel));
+  } catch (error) {
+    console.error('Error getting DM channels:', error);
+    throw error;
+  }
+};
+
+export const getDirectMessages = async (channelId: string, messageLimit = 50) => {
+  const q = query(
+    collection(db, 'directMessages'),
+    where('channelId', '==', channelId),
+    orderBy('createdAt', 'desc'),
+    firestoreLimit(messageLimit)
+  );
+  
+  const snapshot = await getDocs(q);
+  return snapshot.docs.map(doc => ({ 
+    id: doc.id, 
+    ...doc.data() 
+  } as DirectMessage));
+};
+
+export const sendDirectMessage = async (message: Omit<DirectMessage, 'id' | 'createdAt' | 'updatedAt'>) => {
+  const now = new Date().toISOString();
+  const messageRef = await addDoc(collection(db, 'directMessages'), {
+    ...message,
+    createdAt: now,
+    updatedAt: now,
+  });
+
+  // Update the DM channel's lastMessage
+  const channelRef = firestoreDoc(db, 'dmChannels', message.channelId);
+  await updateDoc(channelRef, {
+    lastMessage: {
+      id: messageRef.id,
+      content: message.content,
+      senderId: message.userId,
+      createdAt: now
+    },
+    updatedAt: now
+  });
+
+  return messageRef;
+};

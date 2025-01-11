@@ -86,7 +86,7 @@ export default function MainLayout() {
           </MessageProvider>
         ) : (
           <div className="flex-1 flex items-center justify-center text-gray-500">
-            Select a channel to start messaging
+            Select a channel or direct message to start chatting
           </div>
         )}
       </div>
