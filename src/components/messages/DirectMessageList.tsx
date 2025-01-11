@@ -7,6 +7,7 @@ import type { DirectMessageChannel, UserProfile } from '@/lib/types/slack';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { useDebounce } from '@/lib/hooks/useDebounce';
 import Image from 'next/image';
+import { generateInitialsAvatar } from '@/lib/utils/avatarUtils';
 
 interface DirectMessageListProps {
   workspaceId: string;
@@ -160,7 +161,7 @@ export default function DirectMessageList({
                   <div className="flex items-center space-x-2">
                     <div className="relative">
                       <Image
-                        src={otherUser.avatarUrl || '/default-avatar.png'}
+                        src={otherUser.avatarUrl || generateInitialsAvatar(otherUser.displayName)}
                         alt={otherUser.displayName}
                         width={24}
                         height={24}
