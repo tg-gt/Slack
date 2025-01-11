@@ -284,6 +284,20 @@ export const searchUsers = async (queryString: string): Promise<UserProfile[]> =
   }
 };
 
+export const getUserProfile = async (userId: string): Promise<UserProfile | null> => {
+  try {
+    const userRef = firestoreDoc(db, 'users', userId);
+    const userDoc = await getDoc(userRef);
+    if (userDoc.exists()) {
+      return { id: userDoc.id, ...userDoc.data() } as UserProfile;
+    }
+    return null;
+  } catch (error) {
+    console.error('Error getting user profile:', error);
+    throw error;
+  }
+};
+
 /**
  * Create a direct message channel (1:1 or group).
  */
@@ -296,7 +310,7 @@ export const createDirectMessageChannel = async (workspaceId: string, members: U
       workspaceId,
       members: members.map(m => ({
         id: m.id,
-        displayName: m.displayName || 'Anonymous',
+        displayName: m.displayName,
         ...(m.avatarUrl ? { avatarUrl: m.avatarUrl } : {})
       })),
       memberIds: members.map(m => m.id),

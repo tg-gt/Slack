@@ -2,7 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import { MessageCircle, Plus, Search, Check } from 'lucide-react';
-import { getDirectMessageChannels, searchUsers, createDirectMessageChannel } from '@/lib/firebase/slackUtils';
+import { 
+  getDirectMessageChannels, 
+  searchUsers, 
+  createDirectMessageChannel,
+  getUserProfile 
+} from '@/lib/firebase/slackUtils';
 import type { DirectMessageChannel, UserProfile } from '@/lib/types/slack';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { useDebounce } from '@/lib/hooks/useDebounce';
@@ -81,22 +86,13 @@ export default function DirectMessageList({
     if (!selectedUser || !user) return;
     
     try {
+      const currentUserProfile = await getUserProfile(user.uid);
+      if (!currentUserProfile) {
+        throw new Error('Failed to get current user profile');
+      }
+
       const channelRef = await createDirectMessageChannel(workspaceId, [
-        {
-          id: user.uid,
-          email: user.email || '',
-          displayName: user.displayName || 'Anonymous',
-          avatarUrl: user.photoURL || undefined,
-          preferences: {
-            theme: 'light',
-            notifications: {
-              desktop: true,
-              mobile: true,
-              email: true,
-              mentionsOnly: false,
-            },
-          },
-        },
+        currentUserProfile,
         selectedUser
       ]);
       
