@@ -402,3 +402,27 @@ export const sendDirectMessage = async (message: Omit<DirectMessage, 'id' | 'cre
 
   return messageRef;
 };
+
+export const editMessage = async (messageId: string, content: string) => {
+  try {
+    const messageRef = firestoreDoc(db, 'messages', messageId);
+    await updateDoc(messageRef, {
+      content,
+      isEdited: true,
+      updatedAt: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Error editing message:', error);
+    throw error;
+  }
+};
+
+export const deleteMessage = async (messageId: string) => {
+  try {
+    const messageRef = firestoreDoc(db, 'messages', messageId);
+    await deleteDoc(messageRef);
+  } catch (error) {
+    console.error('Error deleting message:', error);
+    throw error;
+  }
+};
