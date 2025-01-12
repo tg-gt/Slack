@@ -12,7 +12,13 @@ import {
   setDoc,
   doc as firestoreDoc,
   DocumentReference,
-  limit as firestoreLimit
+  limit as firestoreLimit,
+  doc,
+  startAfter,
+  DocumentSnapshot,
+  serverTimestamp,
+  onSnapshot,
+  QuerySnapshot
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import type {
@@ -425,4 +431,8 @@ export const deleteMessage = async (messageId: string) => {
     console.error('Error deleting message:', error);
     throw error;
   }
+};
+
+export const getMessageRef = (workspaceId: string, channelId: string, messageId: string) => {
+  return doc(db, 'messages', messageId);
 };

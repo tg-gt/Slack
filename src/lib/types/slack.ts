@@ -40,6 +40,7 @@ export interface Message {
   isThreadParent?: boolean;// True if this message is a thread parent
   attachments: Attachment[];
   mentions: string[];
+  reactions: MessageReaction[];  // Added reactions array
   createdAt: string;
   updatedAt: string;
   isEdited: boolean;
@@ -106,4 +107,10 @@ export interface NotificationPreferences {
   mobile: boolean;
   email: boolean;
   mentionsOnly: boolean;
+}
+
+export interface MessageReaction {
+  emoji: string;    // The emoji character/unified code
+  users: string[];  // Array of userIds who reacted
+  count: number;    // Quick access to reaction count
 }
