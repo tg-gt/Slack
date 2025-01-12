@@ -8,7 +8,10 @@ import {
   where,
   onSnapshot,
   orderBy,
-  addDoc
+  addDoc,
+  updateDoc,
+  doc,
+  getDoc
 } from 'firebase/firestore';
 import type { Message } from '../types/slack';
 import { useAuth } from '../hooks/useAuth';
@@ -18,11 +21,12 @@ interface MessageContextType {
   loading: boolean;
   error: Error | null;
   sendMessage: (message: Omit<Message, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
+  sendReplyMessage: (
+    threadParentId: string,
+    message: Omit<Message, 'id' | 'createdAt' | 'updatedAt' | 'threadId' | 'isThreadParent'>
+  ) => Promise<void>;
 }
 
-/**
- * Accept either channelId or dmChannelId to fetch messages.
- */
 const MessageContext = createContext<MessageContextType | undefined>(undefined);
 
 export function MessageProvider({
@@ -43,7 +47,6 @@ export function MessageProvider({
     setLoading(true);
     setError(null);
 
-    // If no channelId or dmChannelId, do nothing.
     if (!channelId && !dmChannelId) {
       setMessages([]);
       setLoading(false);
@@ -52,7 +55,6 @@ export function MessageProvider({
 
     let q;
     if (channelId) {
-      // normal channel
       q = query(
         collection(db, 'messages'),
         where('channelId', '==', channelId),
@@ -83,7 +85,9 @@ export function MessageProvider({
     return () => unsubscribe();
   }, [channelId, dmChannelId]);
 
-  const sendMessage = async (message: Omit<Message, 'id' | 'createdAt' | 'updatedAt'>) => {
+  const sendMessage = async (
+    message: Omit<Message, 'id' | 'createdAt' | 'updatedAt'>
+  ) => {
     try {
       const now = new Date().toISOString();
       await addDoc(collection(db, 'messages'), {
@@ -97,8 +101,41 @@ export function MessageProvider({
     }
   };
 
+  // For replying in a thread, we set threadId and update parent message's thread info
+  const sendReplyMessage = async (
+    threadParentId: string,
+    message: Omit<Message, 'id' | 'createdAt' | 'updatedAt' | 'threadId' | 'isThreadParent'>
+  ) => {
+    try {
+      const now = new Date().toISOString();
+      // Insert the new reply
+      const docRef = await addDoc(collection(db, 'messages'), {
+        ...message,
+        threadId: threadParentId,
+        createdAt: now,
+        updatedAt: now,
+      });
+
+      // Update the parent message with new threadCount, lastReplyAt, isThreadParent
+      const parentRef = doc(db, 'messages', threadParentId);
+      const parentSnap = await getDoc(parentRef);
+      if (parentSnap.exists()) {
+        const parentData = parentSnap.data() as Message;
+        const newCount = (parentData.threadCount || 0) + 1;
+        await updateDoc(parentRef, {
+          threadCount: newCount,
+          lastReplyAt: now,
+          isThreadParent: true
+        });
+      }
+    } catch (err) {
+      console.error('Error sending thread reply:', err);
+      setError(err as Error);
+    }
+  };
+
   return (
-    <MessageContext.Provider value={{ messages, loading, error, sendMessage }}>
+    <MessageContext.Provider value={{ messages, loading, error, sendMessage, sendReplyMessage }}>
       {children}
     </MessageContext.Provider>
   );

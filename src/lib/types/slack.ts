@@ -34,13 +34,17 @@ export interface Message {
   userAvatar?: string;
   channelId: string;
   workspaceId: string;
-  threadId?: string;
+  threadId?: string;       // Points to parent message if this is a reply
+  threadCount?: number;    // Count of replies for parent messages
+  lastReplyAt?: string;    // Timestamp of last reply for parent messages
+  isThreadParent?: boolean;// True if this message is a thread parent
   attachments: Attachment[];
   mentions: string[];
   createdAt: string;
   updatedAt: string;
   isEdited: boolean;
   isPinned: boolean;
+  // Future expansions or flags go here
 }
 
 export interface Attachment {
