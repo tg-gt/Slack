@@ -56,18 +56,20 @@ export default function MessageItem({ message, isOwnMessage }: MessageItemProps)
         )}
 
         <div className="absolute right-0 top-0 flex items-center space-x-2 bg-white shadow-sm rounded-md p-1">
-          <button className="p-1 hover:bg-gray-100 rounded">
-            <MessageCircle
-              className="h-4 w-4"
-              onClick={() => setShowThreadPanel(true)}
-            />
-          </button>
+          {!message.threadId && (
+            <button className="p-1 hover:bg-gray-100 rounded">
+              <MessageCircle
+                className="h-4 w-4"
+                onClick={() => setShowThreadPanel(true)}
+              />
+            </button>
+          )}
           <button className="p-1 hover:bg-gray-100 rounded">
             <ThumbsUp className="h-4 w-4" />
           </button>
         </div>
 
-        {message.isThreadParent && message.threadCount ? (
+        {!message.threadId && message.isThreadParent && message.threadCount ? (
           <div className="mt-2">
             <button
               onClick={() => setShowThreadPanel(true)}
@@ -81,7 +83,7 @@ export default function MessageItem({ message, isOwnMessage }: MessageItemProps)
         ) : null}
       </div>
 
-      {showThreadPanel && (
+      {showThreadPanel && !message.threadId && (
         <ThreadPanel
           parentMessage={message}
           onClose={() => setShowThreadPanel(false)}
