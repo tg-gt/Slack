@@ -49,6 +49,7 @@ export default function MessageInput({ channelId, threadId }: MessageInputProps)
         workspaceId: currentWorkspace.id,
         attachments,
         mentions: [], // TODO: Parse mentions from content
+        reactions: [],
         isEdited: false,
         isPinned: false,
       };
