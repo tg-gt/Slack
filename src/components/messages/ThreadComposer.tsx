@@ -28,6 +28,7 @@ export default function ThreadComposer({ parentMessage }: ThreadComposerProps) {
         workspaceId: parentMessage.workspaceId,
         attachments: [],
         mentions: [],
+        reactions: [],
         isEdited: false,
         isPinned: false
       });
