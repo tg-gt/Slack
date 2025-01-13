@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Menu, Search } from 'lucide-react';
+import { Menu, Search, Settings } from 'lucide-react';
 import WorkspaceNav from '../workspace/WorkspaceNav';
 import ChannelList from '../channels/ChannelList';
 import { useWorkspace } from '@/lib/contexts/WorkspaceContext';
@@ -9,12 +9,14 @@ import { MessageProvider } from '@/lib/contexts/MessageContext';
 import MessageThread from '../messages/MessageThread';
 import LoadingSpinner from '../ui/LoadingSpinner';
 import { useAuth } from '@/lib/hooks/useAuth';
+import WorkspaceSettings from '../workspace/WorkspaceSettings';
 
 export default function MainLayout() {
   const { user, loading: authLoading } = useAuth();
   const { currentWorkspace, loading: workspaceLoading } = useWorkspace();
   const [selectedChannelId, setSelectedChannelId] = useState<string>();
   const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [showSettingsDialog, setShowSettingsDialog] = useState(false);
 
   if (authLoading || workspaceLoading) {
     return (
@@ -39,9 +41,17 @@ export default function MainLayout() {
           <div>
             <div className="p-4 border-b bg-white">
               <div className="flex items-center justify-between mb-2">
-                <h1 className="text-xl font-bold truncate">
-                  {currentWorkspace.name}
-                </h1>
+                <div className="flex items-center space-x-2 flex-1 min-w-0">
+                  <h1 className="text-xl font-bold truncate">
+                    {currentWorkspace.name}
+                  </h1>
+                  <button 
+                    onClick={() => setShowSettingsDialog(true)}
+                    className="p-1 hover:bg-gray-100 rounded-md text-gray-500 hover:text-gray-700"
+                  >
+                    <Settings className="h-4 w-4" />
+                  </button>
+                </div>
                 <button 
                   onClick={() => setShowMobileMenu(false)}
                   className="md:hidden p-2 hover:bg-gray-100 rounded-md"
@@ -90,6 +100,10 @@ export default function MainLayout() {
           </div>
         )}
       </div>
+
+      {showSettingsDialog && currentWorkspace && (
+        <WorkspaceSettings onClose={() => setShowSettingsDialog(false)} />
+      )}
     </div>
   );
 } 
