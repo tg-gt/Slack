@@ -49,7 +49,7 @@ export default function MessageItem({ message, isOwnMessage }: MessageItemProps)
 
   return (
     <div
-      className="group relative flex items-start space-x-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-800"
+      className="group relative flex items-start space-x-3 py-2 hover:bg-gray-50"
       onMouseEnter={() => setShowActions(true)}
       onMouseLeave={() => setShowActions(false)}
     >
@@ -99,7 +99,7 @@ export default function MessageItem({ message, isOwnMessage }: MessageItemProps)
           </div>
         ) : (
           <>
-            <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">
+            <p className="mt-1 text-sm text-gray-900">
               {message.content}
             </p>
             {message.attachments?.length > 0 && (
@@ -124,10 +124,10 @@ export default function MessageItem({ message, isOwnMessage }: MessageItemProps)
 
         {/* Hover Actions Menu */}
         {showActions && !isEditing && (
-          <div className="absolute right-0 top-0 flex items-center space-x-2 bg-white dark:bg-gray-800 shadow-sm rounded-md p-1">
+          <div className="absolute right-0 top-0 flex items-center space-x-2 bg-white shadow-sm rounded-md p-1">
             <button
               onClick={() => setShowThreadPanel(!showThreadPanel)}
-              className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+              className="p-1 hover:bg-gray-100 rounded"
             >
               <MessageCircle className="w-4 h-4" />
             </button>
@@ -145,13 +145,13 @@ export default function MessageItem({ message, isOwnMessage }: MessageItemProps)
               <>
                 <button
                   onClick={() => setIsEditing(true)}
-                  className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+                  className="p-1 hover:bg-gray-100 rounded"
                 >
                   <Pencil className="w-4 h-4" />
                 </button>
                 <button
                   onClick={handleDelete}
-                  className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+                  className="p-1 hover:bg-gray-100 rounded"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>

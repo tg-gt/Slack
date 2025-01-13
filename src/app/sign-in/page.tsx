@@ -7,6 +7,7 @@ import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 import { auth } from '@/lib/firebase/firebase';
 import { createInitialProfile } from '@/lib/firebase/slackUtils';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
+import { generateInitialsAvatar } from '@/lib/utils/avatarUtils';
 
 export default function SignIn() {
   const { user, loading, signInWithEmail, createAccountWithEmail } = useAuth();
@@ -80,6 +81,7 @@ export default function SignIn() {
             id: auth.currentUser!.uid,
             email: email,
             displayName: email.split('@')[0],
+            avatarUrl: generateInitialsAvatar(email),
             preferences: {
               theme: 'light',
               notifications: {

@@ -36,8 +36,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
-      <body>
+    <html lang="en" style={{ colorScheme: 'light' }} data-force-color-scheme="light">
+      <body style={{ colorScheme: 'light', backgroundColor: 'white', color: 'black' }}>
         <AuthProvider>
           <WorkspaceProvider>
             <AuthWrapper>{children}</AuthWrapper>

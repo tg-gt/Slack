@@ -101,7 +101,7 @@ export default function ReactionPicker({
       <button
         ref={buttonRef}
         onClick={() => setShowPicker(!showPicker)}
-        className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+        className="p-1 hover:bg-gray-100 rounded"
       >
         <span role="img" aria-label="add reaction">
           😀
@@ -110,7 +110,7 @@ export default function ReactionPicker({
       
       {showPicker && (
         <div className="absolute z-[100] right-0 top-8">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-2">
+          <div className="bg-white rounded-lg shadow-lg p-2">
             <EmojiPicker 
               onEmojiClick={toggleReaction}
               width={350}
