@@ -8,6 +8,8 @@ import { useAuth } from '@/lib/hooks/useAuth';
 import CreateChannelDialog from './CreateChannelDialog';
 import { useDebounce } from '@/lib/hooks/useDebounce';
 import DirectMessageList from '../messages/DirectMessageList';
+import { collection, query, where, orderBy, onSnapshot } from 'firebase/firestore';
+import { db } from '@/lib/firebase/firebase';
 
 interface ChannelListProps {
   workspaceId: string;
@@ -35,8 +37,55 @@ export default function ChannelList({
   useEffect(() => {
     const loadChannels = async () => {
       if (workspaceId && user?.uid) {
-        const channelList = await getChannels(workspaceId, user.uid);
-        setChannels(channelList);
+        // Get all public channels
+        const publicChannelsQuery = query(
+          collection(db, 'channels'),
+          where('workspaceId', '==', workspaceId),
+          where('isPrivate', '==', false),
+          orderBy('name')
+        );
+        
+        // Get private channels where user is a member
+        const privateChannelsQuery = query(
+          collection(db, 'channels'),
+          where('workspaceId', '==', workspaceId),
+          where('isPrivate', '==', true),
+          where('members', 'array-contains', user.uid),
+          orderBy('name')
+        );
+
+        // Set up real-time listeners
+        const unsubPublic = onSnapshot(publicChannelsQuery, (snapshot) => {
+          const publicChannels = snapshot.docs.map(doc => ({ 
+            id: doc.id, 
+            ...doc.data() 
+          } as Channel));
+          
+          // Merge with existing private channels
+          setChannels(prev => {
+            const privateChannels = prev.filter(c => c.isPrivate);
+            return [...publicChannels, ...privateChannels].sort((a, b) => a.name.localeCompare(b.name));
+          });
+        });
+
+        const unsubPrivate = onSnapshot(privateChannelsQuery, (snapshot) => {
+          const privateChannels = snapshot.docs.map(doc => ({ 
+            id: doc.id, 
+            ...doc.data() 
+          } as Channel));
+          
+          // Merge with existing public channels
+          setChannels(prev => {
+            const publicChannels = prev.filter(c => !c.isPrivate);
+            return [...publicChannels, ...privateChannels].sort((a, b) => a.name.localeCompare(b.name));
+          });
+        });
+
+        // Cleanup listeners
+        return () => {
+          unsubPublic();
+          unsubPrivate();
+        };
       }
     };
     loadChannels();

@@ -10,6 +10,9 @@ import MessageHeader from './MessageHeader';
 import DirectMessageHeader from './DirectMessageHeader';
 import { getChannel, getDirectMessageChannel } from '@/lib/firebase/slackUtils';
 import type { Channel, DirectMessageChannel } from '@/lib/types/slack';
+import { useRouter } from 'next/navigation';
+import { doc, onSnapshot } from 'firebase/firestore';
+import { db } from '@/lib/firebase/firebase';
 
 interface MessageThreadProps {
   channelId: string;
@@ -25,6 +28,7 @@ export default function MessageThread({ channelId, threadId }: MessageThreadProp
   const [isDM, setIsDM] = useState(false);
   const [showInfoPanel, setShowInfoPanel] = useState(false);
   const [showMembersPanel, setShowMembersPanel] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     const loadChannel = async () => {
@@ -41,12 +45,32 @@ export default function MessageThread({ channelId, threadId }: MessageThreadProp
         const channelData = await getChannel(channelId);
         setChannel(channelData);
         setIsDM(false);
+
+        // Set up real-time listener for channel updates
+        const unsubscribe = onSnapshot(doc(db, 'channels', channelId), (doc) => {
+          if (doc.exists()) {
+            setChannel({ id: doc.id, ...doc.data() } as Channel);
+          } else {
+            // Channel was deleted, clear state but let the component handle the redirect
+            setChannel(null);
+          }
+        });
+
+        return () => unsubscribe();
       } catch (error) {
         console.error('Error loading channel:', error);
+        setChannel(null);
       }
     };
     loadChannel();
   }, [channelId]);
+
+  // Handle channel deletion by redirecting when channel becomes null
+  useEffect(() => {
+    if (channel === null && !isDM) {
+      router.push('/');
+    }
+  }, [channel, isDM, router]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -77,6 +101,12 @@ export default function MessageThread({ channelId, threadId }: MessageThreadProp
 
   const handleMembersClick = () => {
     setShowMembersPanel(true);
+  };
+
+  const handleChannelDeleted = () => {
+    // Clear the channel state and redirect
+    setChannel(null);
+    router.push('/');
   };
 
   if (loading) {
@@ -113,6 +143,7 @@ export default function MessageThread({ channelId, threadId }: MessageThreadProp
             channel={channel as Channel} 
             onInfoClick={handleInfoClick}
             onMembersClick={handleMembersClick}
+            onChannelDeleted={handleChannelDeleted}
           />
         )
       )}

@@ -570,3 +570,62 @@ export async function getDirectMessageChannel(channelId: string): Promise<Direct
     ...docSnap.data()
   } as DirectMessageChannel;
 }
+
+export const updateChannel = async (channelId: string, userId: string, updates: Partial<Channel>) => {
+  try {
+    const channelRef = firestoreDoc(db, 'channels', channelId);
+    const channelDoc = await getDoc(channelRef);
+    
+    if (!channelDoc.exists()) {
+      throw new Error('Channel not found');
+    }
+
+    const channel = channelDoc.data() as Channel;
+    if (channel.createdBy !== userId) {
+      throw new Error('Only channel creator can update channel settings');
+    }
+
+    const updatedData = {
+      ...updates,
+      updatedAt: new Date().toISOString()
+    };
+
+    await updateDoc(channelRef, updatedData);
+    return { ...channel, ...updatedData };
+  } catch (error) {
+    console.error('Error updating channel:', error);
+    throw error;
+  }
+};
+
+export const deleteChannel = async (channelId: string, userId: string) => {
+  try {
+    const channelRef = firestoreDoc(db, 'channels', channelId);
+    const channelDoc = await getDoc(channelRef);
+    
+    if (!channelDoc.exists()) {
+      throw new Error('Channel not found');
+    }
+
+    const channel = channelDoc.data() as Channel;
+    if (channel.createdBy !== userId) {
+      throw new Error('Only channel creator can delete channel');
+    }
+
+    // Delete all messages in the channel
+    const messagesQuery = query(
+      collection(db, 'messages'),
+      where('channelId', '==', channelId)
+    );
+    const messagesSnapshot = await getDocs(messagesQuery);
+    await Promise.all(messagesSnapshot.docs.map(doc => deleteDoc(doc.ref)));
+
+    // Delete the channel itself
+    await deleteDoc(channelRef);
+
+    return true;
+  } catch (error) {
+    console.error('Error deleting channel:', error);
+    throw error;
+  }
+};
