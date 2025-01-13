@@ -73,25 +73,6 @@ export default function UserProfileSettings() {
         />
       </div>
 
-      <div>
-        <label className="block text-sm font-medium text-gray-700">
-          Theme
-        </label>
-        <select
-          value={profile?.preferences.theme}
-          onChange={(e) => 
-            setProfile(p => ({
-              ...p!,
-              preferences: { ...p!.preferences, theme: e.target.value as 'light' | 'dark' }
-            }))
-          }
-          className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2"
-        >
-          <option value="light">Light</option>
-          <option value="dark">Dark</option>
-        </select>
-      </div>
-
       <button
         type="submit"
         disabled={saving}

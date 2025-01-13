@@ -248,12 +248,22 @@ export const getProfile = async (userId: string): Promise<UserProfile> => {
       },
     };
   }
-  return { id: userDoc.id, ...userDoc.data() } as UserProfile;
+  const data = userDoc.data() as UserProfile;
+  return {
+    ...data,
+    preferences: {
+      ...data.preferences,
+      theme: 'light'
+    }
+  };
 };
 
 export const updateProfile = async (userId: string, profile: Partial<UserProfile>) => {
-  const userRef = firestoreDoc(db, 'users', userId);
-  await setDoc(userRef, profile, { merge: true });
+  const userRef = doc(db, 'users', userId);
+  if (profile.preferences) {
+    profile.preferences.theme = 'light';
+  }
+  return updateDoc(userRef, profile);
 };
 
 export const createInitialProfile = async (profile: UserProfile) => {
