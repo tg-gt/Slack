@@ -125,12 +125,14 @@ export default function MessageItem({ message, isOwnMessage }: MessageItemProps)
         {/* Hover Actions Menu */}
         {showActions && !isEditing && (
           <div className="absolute right-0 top-0 flex items-center space-x-2 bg-white shadow-sm rounded-md p-1">
-            <button
-              onClick={() => setShowThreadPanel(!showThreadPanel)}
-              className="p-1 hover:bg-gray-100 rounded"
-            >
-              <MessageCircle className="w-4 h-4" />
-            </button>
+            {!message.threadId && (
+              <button
+                onClick={() => setShowThreadPanel(!showThreadPanel)}
+                className="p-1 hover:bg-gray-100 rounded"
+              >
+                <MessageCircle className="w-4 h-4" />
+              </button>
+            )}
             
             <div className="relative">
               <ReactionPicker
