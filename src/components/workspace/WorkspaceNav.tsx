@@ -6,6 +6,7 @@ import { Plus, Settings, LogOut } from 'lucide-react';
 import { useWorkspace } from '@/lib/contexts/WorkspaceContext';
 import { useAuth } from '@/lib/hooks/useAuth';
 import CreateWorkspaceDialog from './CreateWorkspaceDialog';
+import WorkspaceSettings from './WorkspaceSettings';
 import LoadingSpinner from '../ui/LoadingSpinner';
 import { logoutUser } from '@/lib/firebase/firebaseUtils';
 
@@ -13,6 +14,7 @@ export default function WorkspaceNav() {
   const { workspaces, currentWorkspace, setCurrentWorkspace, loading } = useWorkspace();
   const { user } = useAuth();
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [showSettingsDialog, setShowSettingsDialog] = useState(false);
 
   const handleSignOut = async () => {
     try {
@@ -65,7 +67,10 @@ export default function WorkspaceNav() {
           </button>
 
           <div className="mt-auto flex flex-col space-y-2">
-            <button className="w-10 h-10 rounded-lg bg-gray-700 hover:bg-gray-600 flex items-center justify-center">
+            <button 
+              onClick={() => setShowSettingsDialog(true)}
+              className="w-10 h-10 rounded-lg bg-gray-700 hover:bg-gray-600 flex items-center justify-center"
+            >
               <Settings className="w-5 h-5 text-gray-300" />
             </button>
             <button 
@@ -80,6 +85,10 @@ export default function WorkspaceNav() {
 
       {showCreateDialog && (
         <CreateWorkspaceDialog onClose={() => setShowCreateDialog(false)} />
+      )}
+
+      {showSettingsDialog && currentWorkspace && (
+        <WorkspaceSettings onClose={() => setShowSettingsDialog(false)} />
       )}
     </div>
   );

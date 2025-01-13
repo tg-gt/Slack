@@ -10,7 +10,7 @@ import { db } from '@/lib/firebase/firebase';
 interface WorkspaceContextType {
   workspaces: Workspace[];
   currentWorkspace: Workspace | null;
-  setCurrentWorkspace: (workspace: Workspace) => void;
+  setCurrentWorkspace: (workspace: Workspace | null) => void;
   loading: boolean;
   error: Error | null;
 }

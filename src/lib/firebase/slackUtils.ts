@@ -82,6 +82,89 @@ export const getWorkspaces = async (userId: string) => {
   }
 };
 
+export const updateWorkspace = async (workspaceId: string, userId: string, updates: Partial<Workspace>) => {
+  try {
+    const workspaceRef = doc(db, 'workspaces', workspaceId);
+    const workspaceDoc = await getDoc(workspaceRef);
+    
+    if (!workspaceDoc.exists()) {
+      throw new Error('Workspace not found');
+    }
+
+    const workspace = workspaceDoc.data() as Workspace;
+    if (workspace.ownerId !== userId) {
+      throw new Error('Only workspace owner can update workspace settings');
+    }
+
+    const updatedData = {
+      ...updates,
+      updatedAt: new Date().toISOString()
+    };
+
+    await updateDoc(workspaceRef, updatedData);
+    return { ...workspace, ...updatedData };
+  } catch (error) {
+    console.error('Error updating workspace:', error);
+    throw error;
+  }
+};
+
+export const deleteWorkspace = async (workspaceId: string, userId: string) => {
+  try {
+    const workspaceRef = doc(db, 'workspaces', workspaceId);
+    const workspaceDoc = await getDoc(workspaceRef);
+    
+    if (!workspaceDoc.exists()) {
+      throw new Error('Workspace not found');
+    }
+
+    const workspace = workspaceDoc.data() as Workspace;
+    if (workspace.ownerId !== userId) {
+      throw new Error('Only workspace owner can delete workspace');
+    }
+
+    // Delete all channels in the workspace
+    const channelsQuery = query(
+      collection(db, 'channels'),
+      where('workspaceId', '==', workspaceId)
+    );
+    const channelsSnapshot = await getDocs(channelsQuery);
+    await Promise.all(channelsSnapshot.docs.map(doc => deleteDoc(doc.ref)));
+
+    // Delete all messages in the workspace
+    const messagesQuery = query(
+      collection(db, 'messages'),
+      where('workspaceId', '==', workspaceId)
+    );
+    const messagesSnapshot = await getDocs(messagesQuery);
+    await Promise.all(messagesSnapshot.docs.map(doc => deleteDoc(doc.ref)));
+
+    // Delete all direct messages in the workspace
+    const directMessagesQuery = query(
+      collection(db, 'directMessages'),
+      where('workspaceId', '==', workspaceId)
+    );
+    const directMessagesSnapshot = await getDocs(directMessagesQuery);
+    await Promise.all(directMessagesSnapshot.docs.map(doc => deleteDoc(doc.ref)));
+
+    // Delete all DM channels in the workspace
+    const dmChannelsQuery = query(
+      collection(db, 'dmChannels'),
+      where('workspaceId', '==', workspaceId)
+    );
+    const dmChannelsSnapshot = await getDocs(dmChannelsQuery);
+    await Promise.all(dmChannelsSnapshot.docs.map(doc => deleteDoc(doc.ref)));
+
+    // Finally delete the workspace itself
+    await deleteDoc(workspaceRef);
+
+    return true;
+  } catch (error) {
+    console.error('Error deleting workspace:', error);
+    throw error;
+  }
+};
+
 // Channel functions
 export const createChannel = async (channel: Omit<Channel, 'id' | 'createdAt' | 'updatedAt'>) => {
   const now = new Date().toISOString();
