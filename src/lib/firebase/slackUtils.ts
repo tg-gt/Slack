@@ -553,3 +553,20 @@ export const uploadAvatar = async (userId: string, file: File): Promise<string> 
   const downloadURL = await getDownloadURL(fileRef);
   return downloadURL;
 };
+
+/**
+ * Get a single direct message channel by ID
+ */
+export async function getDirectMessageChannel(channelId: string): Promise<DirectMessageChannel | null> {
+  const docRef = doc(db, 'dmChannels', channelId);
+  const docSnap = await getDoc(docRef);
+  
+  if (!docSnap.exists()) {
+    return null;
+  }
+
+  return {
+    id: docSnap.id,
+    ...docSnap.data()
+  } as DirectMessageChannel;
+}

@@ -7,8 +7,9 @@ import MessageInput from './MessageInput';
 import MessageItem from './MessageItem';
 import { Loader2 } from 'lucide-react';
 import MessageHeader from './MessageHeader';
-import { getChannel } from '@/lib/firebase/slackUtils';
-import type { Channel } from '@/lib/types/slack';
+import DirectMessageHeader from './DirectMessageHeader';
+import { getChannel, getDirectMessageChannel } from '@/lib/firebase/slackUtils';
+import type { Channel, DirectMessageChannel } from '@/lib/types/slack';
 
 interface MessageThreadProps {
   channelId: string;
@@ -20,13 +21,26 @@ export default function MessageThread({ channelId, threadId }: MessageThreadProp
   const { user } = useAuth();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [showScrollButton, setShowScrollButton] = useState(false);
-  const [channel, setChannel] = useState<Channel | null>(null);
+  const [channel, setChannel] = useState<Channel | DirectMessageChannel | null>(null);
+  const [isDM, setIsDM] = useState(false);
+  const [showInfoPanel, setShowInfoPanel] = useState(false);
+  const [showMembersPanel, setShowMembersPanel] = useState(false);
 
   useEffect(() => {
     const loadChannel = async () => {
       try {
+        // First try to load as DM channel
+        const dmChannel = await getDirectMessageChannel(channelId);
+        if (dmChannel) {
+          setChannel(dmChannel);
+          setIsDM(true);
+          return;
+        }
+
+        // If not a DM, load as regular channel
         const channelData = await getChannel(channelId);
         setChannel(channelData);
+        setIsDM(false);
       } catch (error) {
         console.error('Error loading channel:', error);
       }
@@ -57,6 +71,14 @@ export default function MessageThread({ channelId, threadId }: MessageThreadProp
     }
   }, [loading, messages]);
 
+  const handleInfoClick = () => {
+    setShowInfoPanel(true);
+  };
+
+  const handleMembersClick = () => {
+    setShowMembersPanel(true);
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -79,7 +101,21 @@ export default function MessageThread({ channelId, threadId }: MessageThreadProp
 
   return (
     <div className="flex flex-col h-full">
-      {channel && <MessageHeader channel={channel} />}
+      {channel && (
+        isDM ? (
+          <DirectMessageHeader 
+            channel={channel as DirectMessageChannel} 
+            onInfoClick={handleInfoClick}
+            onMembersClick={handleMembersClick}
+          />
+        ) : (
+          <MessageHeader 
+            channel={channel as Channel} 
+            onInfoClick={handleInfoClick}
+            onMembersClick={handleMembersClick}
+          />
+        )
+      )}
       <div className="flex-1 overflow-y-auto px-4 py-2 space-y-4">
         {threadMessages.map((message) => (
           <MessageItem
@@ -104,6 +140,9 @@ export default function MessageThread({ channelId, threadId }: MessageThreadProp
         channelId={channelId}
         threadId={threadId}
       />
+
+      {/* TODO: Add InfoPanel component when showInfoPanel is true */}
+      {/* TODO: Add MembersPanel component when showMembersPanel is true */}
     </div>
   );
 } 

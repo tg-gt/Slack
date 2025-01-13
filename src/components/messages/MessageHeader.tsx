@@ -6,9 +6,11 @@ import type { Channel } from '@/lib/types/slack';
 
 interface MessageHeaderProps {
   channel: Channel;
+  onInfoClick?: () => void;
+  onMembersClick?: () => void;
 }
 
-export default function MessageHeader({ channel }: MessageHeaderProps) {
+export default function MessageHeader({ channel, onInfoClick, onMembersClick }: MessageHeaderProps) {
   return (
     <div className="h-14 border-b flex items-center justify-between px-4">
       <div className="flex items-center space-x-2">
@@ -21,11 +23,17 @@ export default function MessageHeader({ channel }: MessageHeaderProps) {
       </div>
 
       <div className="flex items-center space-x-4">
-        <button className="flex items-center space-x-1 text-gray-500 hover:text-gray-700">
+        <button 
+          onClick={onMembersClick}
+          className="flex items-center space-x-1 text-gray-500 hover:text-gray-700"
+        >
           <Users className="h-4 w-4" />
           <span className="text-sm">{channel.members.length}</span>
         </button>
-        <button className="text-gray-500 hover:text-gray-700">
+        <button 
+          onClick={onInfoClick}
+          className="text-gray-500 hover:text-gray-700"
+        >
           <Info className="h-4 w-4" />
         </button>
       </div>
