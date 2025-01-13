@@ -44,3 +44,9 @@ next-env.d.ts
 .cache/
 .upm/
 replit_zip_error_log.txt
+
+# Firebase service account
+service-account.json
+
+# Test scripts
+scripts/addTestUser.js
