@@ -91,6 +91,7 @@ export interface UserProfile {
   email: string;
   displayName: string;
   avatarUrl?: string;
+  presence?: 'active' | 'busy' | 'offline';
   status?: {
     text: string;
     emoji?: string;

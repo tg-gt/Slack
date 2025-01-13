@@ -21,6 +21,7 @@ import {
   QuerySnapshot
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { getAuth, updateProfile as updateFirebaseProfile } from 'firebase/auth';
 import type {
   Workspace,
   Channel,
@@ -343,10 +344,26 @@ export const getProfile = async (userId: string): Promise<UserProfile> => {
 
 export const updateProfile = async (userId: string, profile: Partial<UserProfile>) => {
   const userRef = doc(db, 'users', userId);
-  if (profile.preferences) {
-    profile.preferences.theme = 'light';
+  const now = new Date().toISOString();
+  
+  await updateDoc(userRef, {
+    ...profile,
+    updatedAt: now
+  });
+
+  // Also update Firebase Auth profile if display name or photo URL changed
+  const auth = getAuth();
+  const currentUser = auth.currentUser;
+  if (currentUser) {
+    if (profile.displayName || profile.avatarUrl) {
+      await updateFirebaseProfile(currentUser, {
+        displayName: profile.displayName,
+        photoURL: profile.avatarUrl
+      });
+    }
   }
-  return updateDoc(userRef, profile);
+
+  return { id: userId, ...profile };
 };
 
 export const createInitialProfile = async (profile: UserProfile) => {
@@ -528,4 +545,11 @@ export const deleteMessage = async (messageId: string) => {
 
 export const getMessageRef = (workspaceId: string, channelId: string, messageId: string) => {
   return doc(db, 'messages', messageId);
+};
+
+export const uploadAvatar = async (userId: string, file: File): Promise<string> => {
+  const fileRef = ref(storage, `avatars/${userId}/${file.name}`);
+  await uploadBytes(fileRef, file);
+  const downloadURL = await getDownloadURL(fileRef);
+  return downloadURL;
 };

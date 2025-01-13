@@ -8,11 +8,13 @@ import { useAuth } from '@/lib/hooks/useAuth';
 import CreateWorkspaceDialog from './CreateWorkspaceDialog';
 import LoadingSpinner from '../ui/LoadingSpinner';
 import { logoutUser } from '@/lib/firebase/firebaseUtils';
+import ProfileSettings from '../user/ProfileSettings';
 
 export default function WorkspaceNav() {
   const { workspaces, currentWorkspace, setCurrentWorkspace, loading } = useWorkspace();
   const { user } = useAuth();
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [showProfileSettings, setShowProfileSettings] = useState(false);
 
   const handleSignOut = async () => {
     try {
@@ -64,7 +66,31 @@ export default function WorkspaceNav() {
             <Plus className="w-5 h-5 text-gray-300" />
           </button>
 
-          <div className="mt-auto">
+          <div className="mt-auto flex flex-col space-y-4">
+            <button
+              onClick={() => setShowProfileSettings(true)}
+              className="w-10 h-10 rounded-lg overflow-hidden group relative"
+            >
+              {user.photoURL ? (
+                <Image
+                  src={user.photoURL}
+                  alt={user.displayName || 'Profile'}
+                  width={40}
+                  height={40}
+                  className="object-cover"
+                />
+              ) : (
+                <div className="w-full h-full bg-gray-700 flex items-center justify-center text-gray-300">
+                  {user.displayName?.charAt(0).toUpperCase() || 'U'}
+                </div>
+              )}
+              <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 rounded-lg transition-opacity">
+                <span className="text-white text-xs px-2 text-center">
+                  Profile
+                </span>
+              </div>
+            </button>
+
             <button 
               onClick={handleSignOut}
               className="w-10 h-10 rounded-lg bg-gray-700 hover:bg-gray-600 flex items-center justify-center"
@@ -77,6 +103,13 @@ export default function WorkspaceNav() {
 
       {showCreateDialog && (
         <CreateWorkspaceDialog onClose={() => setShowCreateDialog(false)} />
+      )}
+
+      {showProfileSettings && (
+        <ProfileSettings
+          isOpen={showProfileSettings}
+          onClose={() => setShowProfileSettings(false)}
+        />
       )}
     </div>
   );
