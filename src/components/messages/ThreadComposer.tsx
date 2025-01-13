@@ -1,10 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { useMessages } from '@/lib/contexts/MessageContext';
-import { Message } from '@/lib/types/slack';
+import { Message, UserProfile } from '@/lib/types/slack';
 import { generateInitialsAvatar } from '@/lib/utils/avatarUtils';
+import { getProfile } from '@/lib/firebase/slackUtils';
 
 interface ThreadComposerProps {
   parentMessage: Message;
@@ -12,18 +13,30 @@ interface ThreadComposerProps {
 
 export default function ThreadComposer({ parentMessage }: ThreadComposerProps) {
   const [content, setContent] = useState('');
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const { user } = useAuth();
   const { sendReplyMessage } = useMessages();
 
+  useEffect(() => {
+    const loadProfile = async () => {
+      if (user?.uid) {
+        const profile = await getProfile(user.uid);
+        setUserProfile(profile);
+      }
+    };
+    loadProfile();
+  }, [user?.uid]);
+
   const handleSendReply = async () => {
-    if (!content.trim() || !user) return;
+    if (!content.trim() || !user || !userProfile) return;
 
     try {
+      const userName = userProfile.displayName || user.displayName || 'Anonymous';
       await sendReplyMessage(parentMessage.id, {
         content: content.trim(),
         userId: user.uid,
-        userName: user.displayName || 'Anonymous',
-        userAvatar: user.photoURL || generateInitialsAvatar(user.displayName || 'Anonymous'),
+        userName,
+        userAvatar: userProfile.avatarUrl || user.photoURL || generateInitialsAvatar(userName),
         channelId: parentMessage.channelId,
         workspaceId: parentMessage.workspaceId,
         attachments: [],
