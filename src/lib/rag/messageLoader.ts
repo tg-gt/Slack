@@ -87,6 +87,7 @@ export function messageToMetadata(message: Message): MessageMetadata {
     messageId: message.id,
     userId: message.userId,
     channelId: message.channelId,
+    content: message.content,
     timestamp: message.timestamp,
     threadId: message.threadId
   };
