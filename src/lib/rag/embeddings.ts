@@ -17,6 +17,7 @@ export interface MessageMetadata {
   channelId: string;
   timestamp: number;
   threadId?: string;
+  content: string;
   [key: string]: any;
 }
 
