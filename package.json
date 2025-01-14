@@ -6,12 +6,14 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "process-messages": "ts-node --project scripts/tsconfig.json scripts/processMessages.ts"
   },
   "dependencies": {
     "@deepgram/sdk": "^3.6.0",
     "@pinecone-database/pinecone": "^4.1.0",
     "date-fns": "^3.6.0",
+    "dotenv": "^16.4.7",
     "emoji-picker-react": "^4.12.0",
     "firebase": "^10.14.1",
     "firebase-admin": "^13.0.2",
@@ -23,7 +25,8 @@
     "react": "^18",
     "react-dom": "^18",
     "react-markdown": "^9.0.1",
-    "replicate": "^0.32.0"
+    "replicate": "^0.32.0",
+    "ts-node": "^10.9.2"
   },
   "devDependencies": {
     "@types/node": "^20",
