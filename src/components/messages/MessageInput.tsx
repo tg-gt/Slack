@@ -77,14 +77,14 @@ export default function MessageInput({ channelId, threadId }: MessageInputProps)
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
-    if (!files || !currentWorkspace) return;
+    if (!files || !currentWorkspace || !user) return;
 
     setIsUploading(true);
     setUploadError(null);
     
     try {
       const uploadPromises = Array.from(files).map(file => 
-        uploadFile(file, currentWorkspace.id)
+        uploadFile(file, currentWorkspace.id, channelId, user.uid)
       );
       const newAttachments = await Promise.all(uploadPromises);
       setAttachments(prev => [...prev, ...newAttachments]);

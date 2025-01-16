@@ -6,6 +6,7 @@ import { usePathname, redirect } from 'next/navigation';
 import { AuthProvider } from '@/lib/contexts/AuthContext';
 import { WorkspaceProvider } from '@/lib/contexts/WorkspaceContext';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
+import RAGListener from '@/components/rag/RAGListener';
 
 function AuthWrapper({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -27,7 +28,12 @@ function AuthWrapper({ children }: { children: React.ReactNode }) {
     redirect('/');
   }
 
-  return children;
+  return (
+    <>
+      {user && <RAGListener />}
+      {children}
+    </>
+  );
 }
 
 export default function RootLayout({

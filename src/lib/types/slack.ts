@@ -115,3 +115,18 @@ export interface MessageReaction {
   users: string[];  // Array of userIds who reacted
   count: number;    // Quick access to reaction count
 }
+
+export interface Document {
+  id: string;
+  workspaceId: string;
+  channelId: string;
+  uploaderId: string;
+  fileName: string;
+  fileType: string;
+  storageUrl: string;
+  textContent?: string;
+  vectorized: boolean;
+  vectorizedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}

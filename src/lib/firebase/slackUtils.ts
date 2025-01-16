@@ -298,12 +298,12 @@ export const getMessages = async (channelId: string, messageLimit = 50) => {
 };
 
 // File upload function
-export const uploadFile = async (file: File, workspaceId: string): Promise<Attachment> => {
+export const uploadFile = async (file: File, workspaceId: string, channelId: string, userId: string): Promise<Attachment> => {
   try {
-    // Validate file size (10MB limit)
-    const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB in bytes
+    // Validate file size (50MB limit)
+    const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB in bytes
     if (file.size > MAX_FILE_SIZE) {
-      throw new Error('File size exceeds 10MB limit');
+      throw new Error('File size exceeds 50MB limit');
     }
 
     // Validate file type
@@ -339,7 +339,8 @@ export const uploadFile = async (file: File, workspaceId: string): Promise<Attac
     await uploadBytes(storageRef, file, metadata);
     const url = await getDownloadURL(storageRef);
     
-    return {
+    // Create attachment object
+    const attachment: Attachment = {
       id: path,
       type: file.type.startsWith('image/') ? 'image' : 'file',
       url,
@@ -347,6 +348,37 @@ export const uploadFile = async (file: File, workspaceId: string): Promise<Attac
       size: file.size,
       mimeType: file.type,
     };
+
+    // If the file is a document that can be vectorized, create a document record
+    const vectorizableTypes = ['application/pdf', 'text/plain'];
+    console.log('File type:', file.type, 'Vectorizable:', vectorizableTypes.includes(file.type));
+    if (vectorizableTypes.includes(file.type)) {
+      try {
+        console.log('Attempting to process document:', file.name);
+        const { createDocument, processDocument } = await import('../utils/documentProcessor');
+        const doc = await createDocument({
+          workspaceId,
+          channelId,
+          uploaderId: userId,
+          fileName: file.name,
+          fileType: file.type,
+          storageUrl: url,
+        });
+        console.log('Document record created:', doc);
+
+        // Process document in the background
+        console.log('Starting document processing...');
+        processDocument(doc).catch(error => {
+          console.error('Error processing document:', error);
+          // You might want to add error handling/retry logic here
+        });
+      } catch (error) {
+        console.error('Error creating document record:', error);
+        // Continue anyway since the file upload succeeded
+      }
+    }
+
+    return attachment;
   } catch (error: any) {
     console.error('Error uploading file:', error);
     throw new Error(error.message || 'Failed to upload file');
