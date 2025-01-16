@@ -23,6 +23,7 @@ export default function MessageInput({ channelId, threadId }: MessageInputProps)
   const { user } = useAuth();
   const { currentWorkspace } = useWorkspace();
   const { sendMessage } = useMessages();
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -75,21 +76,33 @@ export default function MessageInput({ channelId, threadId }: MessageInputProps)
   };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !currentWorkspace) return;
+    const files = e.target.files;
+    if (!files || !currentWorkspace) return;
 
     setIsUploading(true);
+    setUploadError(null);
+    
     try {
-      const attachment = await uploadFile(file, currentWorkspace.id);
-      setAttachments(prev => [...prev, attachment]);
-    } catch (error) {
-      console.error('Error uploading file:', error);
-    } finally {
-      setIsUploading(false);
+      const uploadPromises = Array.from(files).map(file => 
+        uploadFile(file, currentWorkspace.id)
+      );
+      const newAttachments = await Promise.all(uploadPromises);
+      setAttachments(prev => [...prev, ...newAttachments]);
+      
+      // Reset the file input
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
+    } catch (error: any) {
+      console.error('Error uploading files:', error);
+      setUploadError(error.message || 'Failed to upload file(s)');
+    } finally {
+      setIsUploading(false);
     }
+  };
+
+  const removeAttachment = (index: number) => {
+    setAttachments(prev => prev.filter((_, i) => i !== index));
   };
 
   if (!currentWorkspace) {
@@ -97,23 +110,21 @@ export default function MessageInput({ channelId, threadId }: MessageInputProps)
   }
 
   return (
-    <form onSubmit={handleSubmit} className="p-4 border-t">
+    <form onSubmit={handleSubmit} className="flex flex-col gap-2 p-4 border-t">
+      {uploadError && (
+        <div className="text-red-500 text-sm mb-2">
+          {uploadError}
+        </div>
+      )}
       {attachments.length > 0 && (
-        <div className="mb-2 flex flex-wrap gap-2">
-          {attachments.map((attachment) => (
-            <div
-              key={attachment.id}
-              className="flex items-center gap-2 bg-gray-100 rounded px-2 py-1"
-            >
-              <span className="text-sm truncate max-w-[200px]">
-                {attachment.name}
-              </span>
+        <div className="flex flex-wrap gap-2 mb-2">
+          {attachments.map((attachment, index) => (
+            <div key={index} className="flex items-center gap-1 bg-gray-100 rounded px-2 py-1">
+              <span className="text-sm truncate max-w-[200px]">{attachment.name}</span>
               <button
                 type="button"
-                onClick={() => setAttachments(prev => 
-                  prev.filter(a => a.id !== attachment.id)
-                )}
-                className="text-gray-500 hover:text-red-500"
+                onClick={() => removeAttachment(index)}
+                className="text-gray-500 hover:text-gray-700"
               >
                 ×
               </button>
@@ -121,41 +132,39 @@ export default function MessageInput({ channelId, threadId }: MessageInputProps)
           ))}
         </div>
       )}
-
-      <div className="flex items-end space-x-2">
-        <div className="flex-1">
-          <textarea
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Type a message..."
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            rows={1}
-          />
-        </div>
+      <div className="flex items-end gap-2">
+        <input
+          type="file"
+          ref={fileInputRef}
+          onChange={handleFileChange}
+          className="hidden"
+          multiple
+          accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx,.txt"
+        />
         <button
           type="button"
           onClick={() => fileInputRef.current?.click()}
-          className="p-2 text-gray-500 hover:text-gray-700"
+          className="p-2 text-gray-500 hover:text-gray-700 disabled:opacity-50"
           disabled={isUploading}
         >
-          <Paperclip className="h-5 w-5" />
+          <Paperclip className="w-5 h-5" />
         </button>
+        <textarea
+          value={content}
+          onChange={(e) => setContent(e.target.value)}
+          onKeyDown={handleKeyDown}
+          placeholder="Type a message..."
+          className="flex-1 resize-none rounded-md border p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          rows={1}
+        />
         <button
           type="submit"
-          disabled={!content.trim() || isUploading}
+          disabled={!content.trim() && attachments.length === 0}
           className="p-2 text-blue-500 hover:text-blue-700 disabled:opacity-50"
         >
-          <Send className="h-5 w-5" />
+          <Send className="w-5 h-5" />
         </button>
       </div>
-      <input
-        type="file"
-        ref={fileInputRef}
-        onChange={handleFileChange}
-        className="hidden"
-        accept="image/*,.pdf,.doc,.docx,.txt"
-      />
     </form>
   );
 } 

@@ -299,19 +299,58 @@ export const getMessages = async (channelId: string, messageLimit = 50) => {
 
 // File upload function
 export const uploadFile = async (file: File, workspaceId: string): Promise<Attachment> => {
-  const path = `workspaces/${workspaceId}/files/${file.name}`;
-  const storageRef = ref(storage, path);
-  await uploadBytes(storageRef, file);
-  const url = await getDownloadURL(storageRef);
-  
-  return {
-    id: path,
-    type: file.type.startsWith('image/') ? 'image' : 'file',
-    url,
-    name: file.name,
-    size: file.size,
-    mimeType: file.type,
-  };
+  try {
+    // Validate file size (10MB limit)
+    const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB in bytes
+    if (file.size > MAX_FILE_SIZE) {
+      throw new Error('File size exceeds 10MB limit');
+    }
+
+    // Validate file type
+    const allowedTypes = [
+      'image/',
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/vnd.ms-excel',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'text/plain'
+    ];
+    
+    if (!allowedTypes.some(type => file.type.startsWith(type))) {
+      throw new Error('File type not supported');
+    }
+
+    // Create a unique filename to prevent collisions
+    const fileExtension = file.name.split('.').pop();
+    const uniqueFileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExtension}`;
+    const path = `workspaces/${workspaceId}/files/${uniqueFileName}`;
+    
+    const storageRef = ref(storage, path);
+    
+    // Add metadata to the upload
+    const metadata = {
+      contentType: file.type,
+      customMetadata: {
+        originalName: file.name
+      }
+    };
+
+    await uploadBytes(storageRef, file, metadata);
+    const url = await getDownloadURL(storageRef);
+    
+    return {
+      id: path,
+      type: file.type.startsWith('image/') ? 'image' : 'file',
+      url,
+      name: file.name,
+      size: file.size,
+      mimeType: file.type,
+    };
+  } catch (error: any) {
+    console.error('Error uploading file:', error);
+    throw new Error(error.message || 'Failed to upload file');
+  }
 };
 
 export const getProfile = async (userId: string): Promise<UserProfile> => {
