@@ -5,19 +5,25 @@ import { initializeApp, getApps, cert } from 'firebase-admin/app';
 
 const RAG_AI_USER_ID = 'Y2XqYyUnkmTs5KLnGixYtXan7oh1';
 
+// Helper function for logging with timestamps
+const log = (msg: string) => {
+  console.log(`[${new Date().toISOString()}] ${msg}`);
+};
+
 // Initialize Firebase Admin if not already initialized
-console.log('Checking Firebase Admin initialization...');
+log('Checking Firebase Admin initialization...');
 if (!getApps().length) {
-  console.log('No Firebase Admin apps found, initializing...');
+  log('No Firebase Admin apps found, initializing...');
   try {
     const privateKey = process.env.FIREBASE_PRIVATE_KEY;
     const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
-    console.log('Environment variables loaded:', {
+    log('Environment variables loaded: ' + JSON.stringify({
       hasPrivateKey: !!privateKey,
       hasClientEmail: !!clientEmail,
       privateKeyLength: privateKey?.length,
-      privateKeyStart: privateKey?.substring(0, 50)
-    });
+      privateKeyStart: privateKey?.substring(0, 50),
+      privateKeyEnd: privateKey?.substring(privateKey.length - 50)
+    }, null, 2));
     
     initializeApp({
       credential: cert({
@@ -26,13 +32,13 @@ if (!getApps().length) {
         privateKey: process.env.FIREBASE_PRIVATE_KEY!.replace(/\\n/g, '\n')
       })
     });
-    console.log('Firebase Admin initialized successfully');
-  } catch (error) {
-    console.error('Failed to initialize Firebase Admin:', error);
+    log('Firebase Admin initialized successfully');
+  } catch (error: any) {
+    console.error(`[${new Date().toISOString()}] Failed to initialize Firebase Admin:`, error?.message || String(error));
     throw error;
   }
 } else {
-  console.log('Firebase Admin already initialized');
+  log('Firebase Admin already initialized');
 }
 
 const db = getFirestore();
