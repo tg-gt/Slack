@@ -1,9 +1,41 @@
 import { getFirestore } from 'firebase-admin/firestore';
 import type { Message } from '../types/slack';
 import RAGService from './ragService';
+import { initializeApp, getApps, cert } from 'firebase-admin/app';
+
+const RAG_AI_USER_ID = 'Y2XqYyUnkmTs5KLnGixYtXan7oh1';
+
+// Initialize Firebase Admin if not already initialized
+console.log('Checking Firebase Admin initialization...');
+if (!getApps().length) {
+  console.log('No Firebase Admin apps found, initializing...');
+  try {
+    const privateKey = process.env.FIREBASE_PRIVATE_KEY;
+    const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
+    console.log('Environment variables loaded:', {
+      hasPrivateKey: !!privateKey,
+      hasClientEmail: !!clientEmail,
+      privateKeyLength: privateKey?.length,
+      privateKeyStart: privateKey?.substring(0, 50)
+    });
+    
+    initializeApp({
+      credential: cert({
+        projectId: "slack-6698d",
+        clientEmail: process.env.FIREBASE_CLIENT_EMAIL!,
+        privateKey: process.env.FIREBASE_PRIVATE_KEY!.replace(/\\n/g, '\n')
+      })
+    });
+    console.log('Firebase Admin initialized successfully');
+  } catch (error) {
+    console.error('Failed to initialize Firebase Admin:', error);
+    throw error;
+  }
+} else {
+  console.log('Firebase Admin already initialized');
+}
 
 const db = getFirestore();
-const RAG_AI_USER_ID = 'Y2XqYyUnkmTs5KLnGixYtXan7oh1';
 
 export class DMListener {
   private static instance: DMListener;
