@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import DMListener from '@/lib/rag/dmListener';
 
-export const runtime = 'edge';
+// Specify Node.js runtime
+export const runtime = 'nodejs';
 
 export async function POST(req: Request) {
   const start = Date.now();
